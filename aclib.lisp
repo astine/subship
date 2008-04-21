@@ -199,11 +199,15 @@
   (if (= num end) start
     (1+ num)))
 
+(defmacro nullify-one (name)
+  `(defmacro ,(reread #\! name) (&rest args)
+     (not (,',name ,@args))))
+
 (defmacro nullify (&rest rest)
   "used to create inverse versions of functions prefixed with a '!'"
   `(progn 
      ,@(mapcar #'(lambda (func)
-		   `(defun ,(reread #\! (car func)) (,@(cdr func)) (not (,@func))))
+		   (nullify-one func))
 	       rest)))
 
 (defmacro loop-over (vars mins maxs &body body)
