@@ -1,28 +1,29 @@
-(nullify (equal x y))
+(nullify equal)
 
 (defun get-rand-dir ()
   "returns a random pair of integers of either 1, -1 or 0 value"
   (list (1- (random 3)) (1- (random 3))))
 
-(defmacro set-ai (ship action-chooser direction-chooser)
+(defmacro set-ai (ship ships action-chooser direction-chooser)
   "assigns higher level controlling behavior to each ship
   (the decision-making part"
   `(setf (ship-ai ,ship) 
 	(lambda () (case ,action-chooser 
 		     (0 (move ,ship ,direction-chooser))
-		     (1 (if (funcall (ship-attack ,ship)) 'hit 'miss))
+		     (1 (if (attack ,ship ,ships) 'hit 'miss))
 		     (2 (peek ,ship))
 		     (3 'quit)))))
 
-(defun setup-human-ai (this-ship);uses functions from subship-interface.lisp
+(defun setup-human-ai (this-ship other-ships);uses functions from subship-interface.lisp
   "for human players"
   (set-ai this-ship 
+	  other-ships
 	  (get-selection '("move" "attack" "peek" "quit"))
 	  (get-direction (prompt-direction))))
 
-(defun setup-trivial-ai (this-ship)
+(defun setup-trivial-ai (this-ship other-ships)
   "totally random behavior"
-  (set-ai this-ship (random 3) (get-rand-dir)))
+  (set-ai this-ship other-ships (random 3) (get-rand-dir)))
 
 ;create a memory of the last time an opponent was seen
 (defmacro with-memory (name ship &body body)
@@ -60,7 +61,7 @@
 		       1)
 		      ((> (get-enemy 'turns-since) time-tolerance) 2)
 		      (t 0))))
-       (set-ai this-ship (choose-action) (choose-direction)))))
+       (set-ai this-ship (list enemy-ship) (choose-action) (choose-direction)))))
 
 
 ;;seting up an ai that has a more sophisticated understanding of the world
@@ -240,7 +241,7 @@
 			      to-hit-quota) 1)
 			  (t 0))))
 	   (reset-map (get-enemy 'last-location))
-	   (set-ai this-ship (choose-action) (choose-direction))))))
+	   (set-ai this-ship (list enemy-ship) (choose-action) (choose-direction))))))
 
 (loop-over-collect (a b) (1 1) (9 9) (list a b))
 (greatest 
