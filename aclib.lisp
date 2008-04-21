@@ -201,13 +201,13 @@
 
 (defmacro nullify-one (name)
   `(defmacro ,(reread #\! name) (&rest args)
-     (not (,',name ,@args))))
+     `(not (,',name ,@args))))
 
 (defmacro nullify (&rest rest)
   "used to create inverse versions of functions prefixed with a '!'"
   `(progn 
      ,@(mapcar #'(lambda (func)
-		   (nullify-one func))
+		   `(nullify-one ,func))
 	       rest)))
 
 (defmacro loop-over (vars mins maxs &body body)
@@ -227,7 +227,6 @@
 							     ,(reread (car vs) "lst"))))
 		      ((= ,(car vs) ,(car mxs)) ,(reread (car vs) "lst")))))))
     (car (rec vars mins maxs))))
-
 
 (defun get-sign (n)
   "returns either 1 or -1 depending on the sign of 'n'"
