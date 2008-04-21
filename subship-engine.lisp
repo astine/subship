@@ -21,15 +21,6 @@
    (peeking :accessor ship-peeking
 	    :initform t
 	    :initarg :peeking)
-   (move :accessor ship-move
-	 :initform nil 
-	 :initarg :move)
-   (peek :accessor ship-peek
-	 :initform nil 
-	 :initarg :peek)
-   (attack :accessor ship-attack
-	   :initform nil 
-	   :initarg :attack)
    (ai :accessor ship-ai
        :initform nil 
        :initarg :ai)
@@ -46,9 +37,6 @@
 		 :b (ship-b ship)
 		 :seen (ship-seen ship)
 		 :peeking (ship-peeking ship)
-		 :move (ship-move ship)
-		 :peek (ship-peek ship)
-		 :attack (ship-attack ship)
 		 :ai (ship-ai ship)
 		 :attack-function (attack-function ship)))
 
