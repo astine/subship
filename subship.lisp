@@ -1,8 +1,8 @@
 ;;;Loading the libraries, change paths if appropriate:
-(load "~/Programs/lisp/aclib.lisp")
-(load "~/Programs/lisp/subship-engine.lisp")
-(load "~/Programs/lisp/subship-interface.lisp")
-(load "~/Programs/lisp/subship-ai.lisp")
+(load "c:/Documents and Settings/Administrator/subship/aclib.lisp")
+(load "c:/Documents and Settings/Administrator/subship/subship-engine.lisp")
+(load "c:/Documents and Settings/Administrator/subship/subship-interface.lisp")
+(load "c:/Documents and Settings/Administrator/subship/subship-ai.lisp")
 
 ;;;initializing the ships:
 (defvar *submarine* (make-instance 'submarine 

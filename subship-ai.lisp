@@ -10,7 +10,7 @@
   `(setf (ship-ai ,ship) 
 	(lambda () (case ,action-chooser 
 		     (0 (move ,ship ,direction-chooser))
-		     (1 (if (funcall (ship-attack ,ship)) 'hit 'miss))
+		     (1 (if (funcall (attack-function ,ship)) 'hit 'miss))
 		     (2 (peek ,ship))
 		     (3 'quit)))))
 
@@ -207,9 +207,6 @@
 
 ;end chance-map stuff
 
-(with-chance-map map 5
-   (chance-to-hit-from-map *destroyer* (ship-attack *destroyer*) (get-map)))
-
 (defun setup-harder-ai (this-ship enemy-ship time-tolerance to-hit-quota)
   (with-memory enemy enemy-ship
       (with-chance-map map time-tolerance
@@ -241,12 +238,6 @@
 			  (t 0))))
 	   (reset-map (get-enemy 'last-location))
 	   (set-ai this-ship (choose-action) (choose-direction))))))
-
-(loop-over-collect (a b) (1 1) (9 9) (list a b))
-(greatest 
- (group (flatten (loop-over-collect (a b) (1 1) (9 9) (list a b))) 2)
- :test #'(lambda (x y) (> (car x) (car y))))
-				  
 
 ;(defmacro setup-harder-ai (this-ship enemy-ship time-tolerance to-hit-quota)
 ;  "this one is capable of predicting probabilities"
