@@ -8,11 +8,11 @@
   "assigns higher level controlling behavior to each ship
   (the decision-making part"
   `(setf (ship-ai ,ship) 
-	(lambda () (case ,action-chooser 
-		     (0 (move ,ship ,direction-chooser))
-		     (1 (if (attack ,ship ,ships) 'hit 'miss))
-		     (2 (peek ,ship))
-		     (3 'quit)))))
+	 (lambda () (case ,action-chooser 
+		      (0 (move ,ship ,direction-chooser))
+		      (1 (if (attack ,ship ,ships) 'hit 'miss))
+		      (2 (peek ,ship))
+		      (3 'quit)))))
 
 (defun setup-human-ai (this-ship other-ships);uses functions from subship-interface.lisp
   "for human players"
@@ -64,11 +64,27 @@
        (set-ai this-ship (list enemy-ship) (choose-action) (choose-direction)))))
 
 
-;;seting up an ai that has a more sophisticated understanding of the world
-;;that is able to deduce things
+;;;seting up an ai that has a more sophisticated understanding of the world
+;;;that is able to deduce things
 
-;the goal with these next few functions is to form a map of squares
-;demonstrating the probability of the enemy being any one place
+;;the goal with these next few functions is to form a map of squares
+;;demonstrating the probability of the enemy being any one place
+
+;note, each cell in a chance map is a list of three values:
+;the chance, and the x and y coordinates respectively so:
+(defun cell-chance (cell)
+  (car cell))
+
+(defun cell-locus (cell)
+  (cdr cell))
+
+(defun cell-x (cell)
+  (cadr cell))
+
+(defun cell-y (cell)
+  (caddr cell))
+
+
 (defun get-search-space (last-seen time-since)
   "receives the last known location of a ship and the time since it has been seen
   and returns a map of the area it could have spread to coupled with values that
@@ -93,8 +109,8 @@
   "iterates to the next chance map"
   (let ((new-map (set-chance-map-zero (copy-list old-map))))
     (labels ((add-to-neighbors (x y)
-	       (let* ((sqr (nth x (nth y old-map)))
-		      (val (/ (car sqr) 8)))
+	       (let* ((cell (nth x (nth y old-map)))
+		      (val (/ (cell-chance cell) 8)))
 		 (loop-over (a b) 
 		    ((1- x) (1- y)) 
 		    ((+ x 2) (+ y 2))
@@ -118,14 +134,14 @@
 
 (defun test-chance-map (map)
   "the sum of probabilities should equal 1"
-  (reduce #'+ (mapcar #'car (reduce-map-to-list map))))
+  (reduce #'+ (mapcar #'cell-chance (reduce-map-to-list map))))
 
 (defun print-map (map)
   (format t "~{~a~%~}~%" map))
 
 (defun get-chance-from-map (location map)
   (let ((val (find location (reduce-map-to-list map)
-		   :test #'(lambda (x y) (equal x (cdr y))))))
+		   :test #'(lambda (x y) (equal x (cell-locus y))))))
     (if val (car val) 0)))
 
 (defun chance-to-be-here (location last-seen turns-since)
@@ -135,13 +151,13 @@
 (defun chance-to-hit-from-map (attacker map)
   "calculates the chance to from a premade map"
   (let ((chance 0))
-    (dolist (y map)
-      (dolist (x y)
+    (dolist (a map)
+      (dolist (b a)
 	(if (attack attacker 
 		    (list (make-instance 'ship 
-					 :x (cadr x) 
-					 :y (caddr x))))
-	    (incf chance (car x)))))
+					 :x (cell-x b) 
+					 :y (cell-y b))))
+	    (incf chance (car b)))))
     (identity chance)))
 
 (defun chance-to-hit (attacker target turns-since)
@@ -157,7 +173,7 @@
   (let ((prev-map-list (reduce-map-to-list prev-map))
 	(chance 0))
     (dolist (loc prev-map-list)
-      (let ((x (cadr loc)) (y (caddr loc)))
+      (let ((x (cell-x loc)) (y (cell-y loc)))
 	(loop-over (a b) 
 	   ((1- x) (1- y)) 
 	   ((+ x 2) (+ y 2))
@@ -167,16 +183,24 @@
 							    :x a :y b
 							    :a x :b y)
 					     defender))
-		   (incf chance (/ (car loc) 8)))))))
+		   (incf chance (/ (cell-chance loc) 8)))))))
     (identity chance)))
+
+(defun get-distance-from-map (location map)
+  "returns the average distance of all squares on the map from 
+  'location' weighted by each square's chance"
+  (reduce #'+ (mapcar #'(lambda (cell) 
+			  (* (distance location (cell-locus cell)) (cell-chance cell))) 
+		      (reduce-map-to-list map))))
 
 (defmacro create-chance-map (name scope)
   "creates a global chance map and defines an interface for it"
   `(let ((chance-map nil)
 	 (prev-chance-map nil)
 	 (limit (* ,scope 2)))
-     (defun ,(reread "reset-" name) (location) 
-       (setq chance-map (get-search-space location ,scope)))
+     (defun ,(reread "reset-" name) (location direction) 
+       (setq chance-map (get-search-space location ,scope))
+       (setq prev-chance-map (get-search-space direction ,scope)))
      (defun ,(reread "increment-" name) () 
        (setq prev-chance-map chance-map)
        (setq chance-map (get-next-map chance-map limit)))
@@ -193,8 +217,9 @@
     `(let ((,chance-map nil)
 	   (,prev-map nil)
 	   (,limit (* ,scope 2)))
-       (labels ((,(reread "reset-" name) (location)
-		  (setq ,chance-map (get-search-space location ,scope))) 
+       (labels ((,(reread "reset-" name) (location direction)
+		  (setq ,chance-map (get-search-space location ,scope)) 
+		  (setq ,prev-map (get-search-space direction ,scope))) 
 		(,(reread "increment-" name) ()
 		  (setq ,prev-map ,chance-map)
 		  (setq ,chance-map (get-next-map ,chance-map ,limit)))
@@ -208,7 +233,7 @@
 
 ;end chance-map stuff
 
-(defun setup-harder-ai (this-ship enemy-ship time-tolerance to-hit-quota)
+(defun setup-harder-ai (this-ship enemy-ship seek dodge aggression time-tolerance to-hit-quota)
   (with-memory enemy enemy-ship
       (with-chance-map map time-tolerance
 	 (labels ((choose-direction ()
@@ -221,15 +246,19 @@
 				   ((+ (car l) 2) (+ (cadr l) 2))
 				   (let ((cth (chance-to-hit-from-map this-ship 
 								      (get-map)))
-					 (ctbh (chance-to-be-hit this-ship 
-								 (prev-map) 
-								 (attack-function enemy-ship))))
-				     (list (if (zerop ctbh) cth 
-					       (/ cth ctbh)) a b)))) 3)
+					 (ctbh (if (zerop (get-enemy 'turns-since)) (bint (attack enemy-ship '(this-ship)))
+							  (chance-to-be-hit this-ship 
+									    (prev-map) 
+									    (attack-function enemy-ship))))
+					 (avd (get-distance-from-map (get-location this-ship)
+								     (get-map))))
+				     (list (+ (* cth aggression) (* (1- ctbh) dodge) (* avd seek)) a b)))) 3)
 				   :test #'(lambda (x y) (> (car x) (car y)))))
 			      l)))
 		  (choose-action ()
-		    (if (zerop (get-enemy 'turns-since)) (reset-map (get-enemy 'last-location))
+		    (if (zerop (get-enemy 'turns-since)) 
+			(reset-map (get-enemy 'last-location)
+				   (get-enemy 'last-direction))
 			(increment-map))
 		    (update-enemy enemy-ship this-ship)
 		    (cond ((> (get-enemy 'turns-since) time-tolerance) 2)
@@ -237,7 +266,8 @@
 						      (get-map))
 			      to-hit-quota) 1)
 			  (t 0))))
-	   (reset-map (get-enemy 'last-location))
+	   (reset-map (get-enemy 'last-location)
+		      (get-enemy 'last-direction))
 	   (set-ai this-ship (list enemy-ship) (choose-action) (choose-direction))))))
 
 ;(defmacro setup-harder-ai (this-ship enemy-ship time-tolerance to-hit-quota)

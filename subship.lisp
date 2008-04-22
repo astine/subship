@@ -19,10 +19,8 @@
 				   :a 0
 				   :b 0))
 
-(setup-submarine `(,*submarine* ,*destroyer*))
-(setup-destroyer `(,*destroyer* ,*submarine*))
-(setup-human-ai *submarine*)
-(setup-harder-ai *destroyer* *submarine* 4 1/8)
+(setup-human-ai *submarine* (list *destroyer*))
+(setup-harder-ai *destroyer* *submarine* 1 1 1 4 1/8)
 
 ;;;main game loop:
 (let ((x nil))

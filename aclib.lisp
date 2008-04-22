@@ -201,13 +201,13 @@
 
 (defmacro nullify-one (name)
   `(defmacro ,(reread #\! name) (&rest args)
-     (not (,',name ,@args))))
+     `(not (,',name ,@args))))
 
 (defmacro nullify (&rest rest)
   "used to create inverse versions of functions prefixed with a '!'"
   `(progn 
      ,@(mapcar #'(lambda (func)
-		   (nullify-one func))
+		   `(nullify-one ,func))
 	       rest)))
 
 (defmacro loop-over (vars mins maxs &body body)
@@ -235,6 +235,10 @@
 	((plusp n) 1)
 	(t 0)))
 
+(defun bint (val)
+  "converts boolean value to c style integer"
+  (if val 1 0))
+
 (defmacro test-adjacent-squares (location var1 var2 &body body)
   "given a pair of numbers, test body on each of them and return
    a list of the results"
@@ -242,3 +246,16 @@
       ((1- (car ,location)) (1- (cadr ,location)))
       ((+ (car ,location) 2) (+ (cadr ,location) 2))
       ,@body))
+
+(defmacro make-simple-anaph (mac)
+  `(defmacro ,(reread #\a mac) (&rest args)
+     `(let ((it ,(car args)))
+	(,',mac ,@args))))
+
+(defmacro make-simple-anaphs (&rest args)
+  `(progn
+     ,@(mapcar #'(lambda (x) 
+		   `(make-simple-anaph ,x))
+	       args)))
+
+(make-simple-anaphs + * - / = < > if when)

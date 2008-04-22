@@ -91,6 +91,16 @@
 	  ((match-coord ship x y) (get-ship-char (ship-kind ship)))
 	  (t (get-ship-on-square (cdr ships) x y)))))
 
+;(defun distance (locus1 locus2)
+;  "returns the distance between two points"
+;  (sqrt (+ (a* (- (car locus1) (car locus2)) it)
+;	   (a* (- (cadr locus1) (cadr locus2)) it))))
+
+(defun distance (locus1 locus2)
+  "returns the distance between two points"
+  (greater (abs (- (car locus1) (car locus2)))
+	   (abs (- (cadr locus1) (cadr locus2)))))
+
 (defun depthcharge (ships)
   "returns true if the ships have the same location"
   (and (= (ship-x (car ships)) 
@@ -136,37 +146,4 @@
   (setf (ship-seen ship) t)
   (setf (ship-peeking ship) t))
 
-(defmacro setup-ship (ships move peek attack)
-  "defines the kinds of actions a ship is able to perform
-  'move' is allowed to use the value 'dir' as input"
-  `(progn
-     (setf (ship-move (first ,ships))
-	   (lambda (dir) ,move))
-     (setf (ship-peek (first ,ships))
-	   (lambda () ,peek))
-     (setf (ship-attack (first ,ships))
-	   (lambda () ,attack))))
 
-;;; things to deal with specific unit types:
-
-(defun setup-submarine (ships)
-  (setup-ship ships
-	      (progn (move-ship (first ships) dir)
-		     (setf (ship-seen (first ships)) nil)
-		     (setf (ship-peeking (first ships)) nil))
-	      (progn (setf (ship-seen (first ships)) t)
-		     (setf (ship-peeking (first ships)) t))
-	      (progn (setf (ship-seen (first ships)) t)
-		     (setf (ship-peeking (first ships)) nil)
-		     (torpedo ships))))
-
-(defun setup-destroyer (ships)
-  (setup-ship ships
-	      (progn (move-ship (first ships) dir)
-		     (setf (ship-seen (first ships)) nil)
-		     (setf (ship-peeking (first ships)) nil))
-	      (progn (setf (ship-seen (first ships)) t)
-		     (setf (ship-peeking (first ships)) t))
-	      (progn (setf (ship-seen (first ships)) t)
-		     (setf (ship-peeking (first ships)) nil)
-		     (depthcharge ships))))
