@@ -1,4 +1,4 @@
-;(defstruct ship kind x y a b seen peeking move peek attack ai)
+;(defstruct ship kind x y a b seen peeking ai attack-function)
 (defclass ship () 
   ((kind :accessor ship-kind
 	 :initform 'generic-ship

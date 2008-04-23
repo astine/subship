@@ -6,6 +6,10 @@
 ;           ,(let (,@(loop for n in names for g in gensyms collect `(,n ,g)))
 ;              ,@body)))))
 
+(defun butnth (n lst)
+  "returns a list with one element removed"
+  (append (butlast lst (- (list-length lst) n)) 
+	  (nthcdr (1+ n) lst)))
 
 (defun pop-out (lst n)
   "returns the 'n'th item of 'lst' and a list of al the elements of 'lst' save the 'n'th"

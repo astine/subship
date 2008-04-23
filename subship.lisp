@@ -7,17 +7,20 @@
 ;;;initializing the ships:
 (defvar *submarine* (make-instance 'submarine 
 				   :kind 'submarine
-				   :x -1
+				   :x 1
 				   :y 1
 				   :a 0
 				   :b 0))
 
 (defvar *destroyer* (make-instance 'destroyer 
 				   :kind 'destroyer
-				   :x 1
+				   :x -1
 				   :y -1
 				   :a 0
 				   :b 0))
+
+(makunbound '*submarine*)
+(makunbound '*destroyer*)
 
 (setup-human-ai *submarine* (list *destroyer*))
 (setup-harder-ai *destroyer* *submarine* 1 1 1 4 1/8)

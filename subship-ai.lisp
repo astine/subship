@@ -30,14 +30,14 @@
   (with-gensyms (turns-since-peek last-enemy-location last-enemy-direction)
     `(let ((,turns-since-peek 0)
 	   (,last-enemy-location (get-location ,ship))
-	   (,last-enemy-direction (get-direction ,ship)))
+	   (,last-enemy-direction (get-past-location ,ship)))
        (labels ((,(reread "update-" name) (enemy-ship this-ship)
 		  (if (or (ship-seen enemy-ship)
 			  (ship-peeking this-ship))
 		      (progn 
 			(setq ,turns-since-peek 0)
 			(setq ,last-enemy-location (get-location enemy-ship))
-			(setq ,last-enemy-direction (get-direction enemy-ship)))
+			(setq ,last-enemy-direction (get-past-location enemy-ship)))
 		      (incf ,turns-since-peek)))
 		(,(reread "get-" name) (what)
 		  (case what
@@ -71,7 +71,7 @@
 ;;demonstrating the probability of the enemy being any one place
 
 ;note, each cell in a chance map is a list of three values:
-;the chance, and the x and y coordinates respectively so:
+;the chance, and the x and y coordinates respectively, so:
 (defun cell-chance (cell)
   (car cell))
 
@@ -83,7 +83,6 @@
 
 (defun cell-y (cell)
   (caddr cell))
-
 
 (defun get-search-space (last-seen time-since)
   "receives the last known location of a ship and the time since it has been seen
@@ -211,6 +210,10 @@
      (defun ,(reread "print-" name) ()
        (print-map (,(reread "get-" name))))))
 
+(create-chance-map friend 3)
+(reset-friend '(0 0) '(1 1))
+(chance-to-be-hit (make-instance 'ship :x -1 :y -1) (prev-friend) #'torpedo)
+
 (defmacro with-chance-map (name scope &body body)
   "creates a local chance map and defines an interface for it"
   (with-gensyms (chance-map prev-map limit)
@@ -241,19 +244,24 @@
 		      (mapcar #'-
 			      (cdr 
 			       (greatest 
-				(group (flatten (loop-over-collect (a b)
-				   ((1- (car l)) (1- (cadr l)))
-				   ((+ (car l) 2) (+ (cadr l) 2))
-				   (let ((cth (chance-to-hit-from-map this-ship 
-								      (get-map)))
-					 (ctbh (if (zerop (get-enemy 'turns-since)) (bint (attack enemy-ship '(this-ship)))
-							  (chance-to-be-hit this-ship 
-									    (prev-map) 
-									    (attack-function enemy-ship))))
-					 (avd (get-distance-from-map (get-location this-ship)
-								     (get-map))))
-				     (list (+ (* cth aggression) (* (1- ctbh) dodge) (* avd seek)) a b)))) 3)
-				   :test #'(lambda (x y) (> (car x) (car y)))))
+				(butnth 4 ;(make sure it doesn't include its own square
+					(mapcan #'identity; #'(lambda (x) (progn (format t "~a~%" x) (identity x))) 
+						(loop-over-collect (a b);create a list of the squares surrounding 'l' and assign each a value for selecting one to move to
+						   ((1- (car l)) (1- (cadr l)))
+						   ((+ (car l) 2) (+ (cadr l) 2))
+						   (let* ((n-ship-l (make-instance 'ship :x a :y b
+										   :a (car l) :b (cadr l) :attack-function (attack-function this-ship)))
+							  (cth (chance-to-hit-from-map n-ship-l ;the sum of these tests makes up the value of each square
+										       (get-map)))
+							  (ctbh (if (zerop (get-enemy 'turns-since)) (bint (attack enemy-ship (list n-ship-l)))
+								    (chance-to-be-hit n-ship-l
+										      (prev-map) 
+										      (attack-function enemy-ship))))
+							  (avd (get-distance-from-map (list a b) 
+										      (get-map))))
+						     (list (+ (* cth aggression) (* (1- ctbh) dodge) (- 0 (* avd seek))) a b)))))
+					;the value of each square is stored in the first element of each list, so test first elements
+				:test #'(lambda (x y) (> (car x) (car y)))))
 			      l)))
 		  (choose-action ()
 		    (if (zerop (get-enemy 'turns-since)) 
@@ -299,29 +307,4 @@
 ;
 ;
 ;(cons (caddr '((x y) (1 2 3 4) ((a b) g))))
-;
 
-
-;(defmacro setup-simple-ai (this-ship enemy-ship time-tolerance)
-;  "this one has a memory"
-;  `(let ((turns-since-peek 0)
-;	 (last-enemy-location (get-location ,enemy-ship))
-;	 (last-enemy-direction (get-past-location ,enemy-ship)))
-;     (labels ((look-for-ship () 
-;		(if (or (ship-seen ,enemy-ship)
-;			(ship-peeking ,this-ship))
-;		    (progn (setq turns-since-peek 0)
-;			   (setq last-enemy-location (get-location ,enemy-ship))
-;			   (setq last-enemy-direction (get-past-location ,enemy-ship)))
-;		    (incf turns-since-peek)))
-;	      (choose-direction ()
-;		(list (get-sign (- (car last-enemy-location) (ship-x ,this-ship)))
-;		      (get-sign (- (cadr last-enemy-location) (ship-y ,this-ship)))))
-;	      (choose-action ()
-;		(look-for-ship)
-;		(cond ((and (equal (get-location ,this-ship) last-enemy-location) 
-;			    (zerop turns-since-peek))
-;		       1)
-;		      ((> turns-since-peek ,time-tolerance) 2)
-;		      (t 0))))
-;       (set-ai ,this-ship (choose-action) (choose-direction)))))
