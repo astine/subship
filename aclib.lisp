@@ -6,6 +6,10 @@
 ;           ,(let (,@(loop for n in names for g in gensyms collect `(,n ,g)))
 ;              ,@body)))))
 
+(defun butnth (n lst)
+  "returns a list with one element removed"
+  (append (butlast lst (- (list-length lst) n)) 
+	  (nthcdr (1+ n) lst)))
 
 (defun pop-out (lst n)
   "returns the 'n'th item of 'lst' and a list of al the elements of 'lst' save the 'n'th"
@@ -234,6 +238,10 @@
 	((plusp n) 1)
 	(t 0)))
 
+(defun bint (val)
+  "converts boolean value to c style integer"
+  (if val 1 0))
+
 (defmacro test-adjacent-squares (location var1 var2 &body body)
   "given a pair of numbers, test body on each of them and return
    a list of the results"
@@ -241,3 +249,16 @@
       ((1- (car ,location)) (1- (cadr ,location)))
       ((+ (car ,location) 2) (+ (cadr ,location) 2))
       ,@body))
+
+(defmacro make-simple-anaph (mac)
+  `(defmacro ,(reread #\a mac) (&rest args)
+     `(let ((it ,(car args)))
+	(,',mac ,@args))))
+
+(defmacro make-simple-anaphs (&rest args)
+  `(progn
+     ,@(mapcar #'(lambda (x) 
+		   `(make-simple-anaph ,x))
+	       args)))
+
+(make-simple-anaphs + * - / = < > if when)

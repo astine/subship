@@ -1,28 +1,29 @@
 ;;;Loading the libraries, change paths if appropriate:
-(load "~/Programs/lisp/aclib.lisp")
-(load "~/Programs/lisp/subship-engine.lisp")
-(load "~/Programs/lisp/subship-interface.lisp")
-(load "~/Programs/lisp/subship-ai.lisp")
+(load "c:/Documents and Settings/Administrator/subship/aclib.lisp")
+(load "c:/Documents and Settings/Administrator/subship/subship-engine.lisp")
+(load "c:/Documents and Settings/Administrator/subship/subship-interface.lisp")
+(load "c:/Documents and Settings/Administrator/subship/subship-ai.lisp")
 
 ;;;initializing the ships:
 (defvar *submarine* (make-instance 'submarine 
 				   :kind 'submarine
-				   :x -1
+				   :x 1
 				   :y 1
 				   :a 0
 				   :b 0))
 
 (defvar *destroyer* (make-instance 'destroyer 
 				   :kind 'destroyer
-				   :x 1
+				   :x -1
 				   :y -1
 				   :a 0
 				   :b 0))
 
-(setup-submarine `(,*submarine* ,*destroyer*))
-(setup-destroyer `(,*destroyer* ,*submarine*))
-(setup-human-ai *submarine*)
-(setup-harder-ai *destroyer* *submarine* 4 1/8)
+(makunbound '*submarine*)
+(makunbound '*destroyer*)
+
+(setup-human-ai *submarine* (list *destroyer*))
+(setup-harder-ai *destroyer* *submarine* 1 1 1 4 1/8)
 
 ;;;main game loop:
 (let ((x nil))
